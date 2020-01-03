@@ -1,3 +1,5 @@
+//Playing with an RGB LED
+
 const int greenLEDPin = 9;
 const int blueLEDPin = 10;
 const int redLEDPin = 11;

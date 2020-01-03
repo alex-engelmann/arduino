@@ -1,15 +1,41 @@
+/*
+   Inputs ADC Value from VMA320 Thermistor and outputs Temperature in Celsius
+
+   Utilizes the Steinhart-Hart Thermistor Equation:
+      Temperature in Kelvin = 1 / {A + B[ln(R)] + C[ln(R)]^3}
+      where A = 0.001129148, B = 0.000234125 and C = 8.76741E-08
+
+   These coefficients seem to work fairly universally, which is a bit of a
+   surprise.
+
+   Schematic:
+     [Ground] -- [10k-pad-resistor] -- | -- [thermistor] --[Vcc (5 or 3.3v)]
+                                                 |
+                                            Analog Pin 0
+
+   In case it isn't obvious (as it wasn't to me until I thought about it), the analog ports
+   measure the voltage between 0v -> Vcc which for an Arduino is a nominal 5v
+
+   The resistance calculation uses the ratio of the two resistors, so the voltage
+   specified above is really only required for the debugging that is commented out below
+
+   Resistance = PadResistor * (1024/ADC -1)
+
+   For a GND-Thermistor-PullUp--Varef circuit it would be Rtherm=Rpullup/(1024.0/ADC-1)
+   The VMA320 is pull-up
+*/
+
+#include <Arduino.h>
+
 #include <math.h>
 
 #define ThermistorPIN 0
 // Analog Pin 0
 
-// room temperature in Celsius
-const float baselineTemp = 20.0;
-
 float vcc = 5.00;
 // only used for display purposes, if used
 // set to the measured Vcc.
-float pad = 9970;
+float pad = 10000;
 // balance/pad resistor value, set this to
 // the measured resistance of your pad resistor
 float thermr = 10000;
@@ -28,11 +54,11 @@ float Thermistor(int RawADC) {
 
   Serial.print("ADC: ");
   Serial.print(RawADC);
-  Serial.print("/1024");                           // Print out RAW ADC Number
+  Serial.print("/1024");
   Serial.print(", vcc: ");
   Serial.print(vcc, 1);
   Serial.print(", pad: ");
-  Serial.print(pad / 1000, 2);
+  Serial.print(pad / 1000, 0);
   Serial.print(" kOhms, Volts: ");
   Serial.print(((RawADC * vcc) / 1024.0), 3);
   Serial.print(", Thermistor resistance: ");
@@ -40,6 +66,7 @@ float Thermistor(int RawADC) {
   Serial.print(" Ohms, ");
 
   // END- Remove these lines for the function not to display anything
+
   return Temp;
 }
 
@@ -59,47 +86,16 @@ float sample(byte z)
 
 void setup() {
   Serial.begin(9600);
-  for (int pinNumber = 2; pinNumber < 5; pinNumber++) {
-    pinMode(pinNumber, OUTPUT);
-    digitalWrite(pinNumber, LOW);
-  }
 }
-
 
 void loop() {
   float temp;
   temp = Thermistor(sample(ThermistorPIN));     // read ADC and  convert it to Celsius
   Serial.print("Celsius: ");
-  Serial.print(temp, 1);
-  float temperature;
-  temperature = temp;
-  
+  Serial.print(temp, 1);                            // display Celsius
   temp = (temp * 9.0) / 5.0 + 32.0;                 // converts to  Fahrenheit
   Serial.print(", Fahrenheit: ");
   Serial.print(temp, 1);                            // display  Fahrenheit
   Serial.println("");
-  
-  // if the current temperature is lower than the baseline turn off all LEDs
-  if (temperature < baselineTemp + 2) {
-    digitalWrite(2, LOW);
-    digitalWrite(3, LOW);
-    digitalWrite(4, LOW);
-  } // if the temperature rises 2-4 degrees, turn an LED on
-  else if (temperature >= baselineTemp + 2 && temperature < baselineTemp + 6) {
-    digitalWrite(2, HIGH);
-    digitalWrite(3, LOW);
-    digitalWrite(4, LOW);
-  } // if the temperature rises 4-6 degrees, turn a second LED on
-  else if (temperature >= baselineTemp + 6 && temperature < baselineTemp + 10) {
-    digitalWrite(2, HIGH);
-    digitalWrite(3, HIGH);
-    digitalWrite(4, LOW);
-  } // if the temperature rises more than 6 degrees, turn all LEDs on
-  else if (temperature >= baselineTemp + 12) {
-    digitalWrite(2, HIGH);
-    digitalWrite(3, HIGH);
-    digitalWrite(4, HIGH);
-  }
-  
-  delay(1000);                                      // Delay a bit...
+  delay(5000);                                      // Delay a bit...
 }

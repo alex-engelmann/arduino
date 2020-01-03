@@ -1,3 +1,5 @@
+//Toggling a few LEDs
+
 int switchState = 0;
 void setup() {
   pinMode(3, OUTPUT);
